@@ -110,18 +110,28 @@ def enroll(request, course_id):
          # Collect the selected choices from exam form
          # Add each selected choice object to the submission object
          # Redirect to show_exam_result with the submission id
-#def submit(request, course_id):
+def submit(request, course_id):
+    user = request.user
+    course = get_object_or_404(Course, pk=course_id)
+    enrollment = Enrollment.objects.get(user=user, course=course)
+    submission = Submission.objects.create(enrollment=enrollment)
+
+    answers = extract_answers(request)
+    for answer in answers:
+        choice = get_object_or_404(Choice, pk=answer)
+        submission.choices.add(choice)
+    return HttpResponseRedirect(reverse(viewname='onlinecourse:result', args=(course.id, submission.id)))
 
 
 # <HINT> A example method to collect the selected choices from the exam form from the request object
-#def extract_answers(request):
-#    submitted_anwsers = []
-#    for key in request.POST:
-#        if key.startswith('choice'):
-#            value = request.POST[key]
-#            choice_id = int(value)
-#            submitted_anwsers.append(choice_id)
-#    return submitted_anwsers
+def extract_answers(request):
+   submitted_answers = []
+   for key in request.POST:
+       if key.startswith('choice'):
+           value = request.POST[key]
+           choice_id = int(value)
+           submitted_answers.append(choice_id)
+   return submitted_answers
 
 
 # <HINT> Create an exam result view to check if learner passed exam and show their question results and result for each question,
@@ -130,7 +140,26 @@ def enroll(request, course_id):
         # Get the selected choice ids from the submission record
         # For each selected choice, check if it is a correct answer or not
         # Calculate the total score
-#def show_exam_result(request, course_id, submission_id):
-
-
+def show_exam_result(request, course_id, submission_id):
+    course = get_object_or_404(Course, pk=course_id)
+    submission = get_object_or_404(Submission, pk=submission_id)
+    grade = 0
+    selected_ids = []
+    for choice in submission.choices.all():
+        print(choice)
+        print(choice.is_correct)
+        selected_ids.append(choice.id)
+        if choice.is_correct:
+            grade += 1
+    #If choice is selected and choice is correct, increase score by 1.
+    #If choice is not selected and choice is correct, don't increase score.
+    #If choice is selected and choice is not correct, don't increase score.
+    #Denominator = total number of correct choices
+            
+    context = {}
+    context['course'] = course
+    context['selected_ids'] = selected_ids
+    context['grade'] = grade
+    # return HttpResponseRedirect(reverse(viewname='onlinecourse:result', args=(course_id, grade)))
+    return render(request, 'onlinecourse/exam_result_bootstrap.html', context)
 
