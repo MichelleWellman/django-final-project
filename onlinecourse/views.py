@@ -143,14 +143,22 @@ def extract_answers(request):
 def show_exam_result(request, course_id, submission_id):
     course = get_object_or_404(Course, pk=course_id)
     submission = get_object_or_404(Submission, pk=submission_id)
-    grade = 0
+    score = 0
+    correct_answers = 0
     selected_ids = []
+    for question in course.question_set.all():
+        for choice in question.choice_set.all():
+            if choice.is_correct:
+                correct_answers += 1
     for choice in submission.choices.all():
         print(choice)
         print(choice.is_correct)
         selected_ids.append(choice.id)
         if choice.is_correct:
-            grade += 1
+            score += 1
+        else:
+            score -= 1
+    grade = int((score/correct_answers)*100)
     #If choice is selected and choice is correct, increase score by 1.
     #If choice is not selected and choice is correct, don't increase score.
     #If choice is selected and choice is not correct, don't increase score.
@@ -160,6 +168,5 @@ def show_exam_result(request, course_id, submission_id):
     context['course'] = course
     context['selected_ids'] = selected_ids
     context['grade'] = grade
-    # return HttpResponseRedirect(reverse(viewname='onlinecourse:result', args=(course_id, grade)))
     return render(request, 'onlinecourse/exam_result_bootstrap.html', context)
 
