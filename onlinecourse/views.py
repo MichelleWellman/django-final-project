@@ -104,12 +104,6 @@ def enroll(request, course_id):
 
 
 # <HINT> Create a submit view to create an exam submission record for a course enrollment,
-# you may implement it based on following logic:
-         # Get user and course object, then get the associated enrollment object created when the user enrolled the course
-         # Create a submission object referring to the enrollment
-         # Collect the selected choices from exam form
-         # Add each selected choice object to the submission object
-         # Redirect to show_exam_result with the submission id
 def submit(request, course_id):
     user = request.user
     course = get_object_or_404(Course, pk=course_id)
@@ -120,6 +114,7 @@ def submit(request, course_id):
     for answer in answers:
         choice = get_object_or_404(Choice, pk=answer)
         submission.choices.add(choice)
+        
     return HttpResponseRedirect(reverse(viewname='onlinecourse:result', args=(course.id, submission.id)))
 
 
@@ -134,39 +129,37 @@ def extract_answers(request):
    return submitted_answers
 
 
-# <HINT> Create an exam result view to check if learner passed exam and show their question results and result for each question,
-# you may implement it based on the following logic:
-        # Get course and submission based on their ids
-        # Get the selected choice ids from the submission record
-        # For each selected choice, check if it is a correct answer or not
-        # Calculate the total score
+# <HINT> Create an exam result view to check if learner passed exam and show their question results and result for each question
 def show_exam_result(request, course_id, submission_id):
     course = get_object_or_404(Course, pk=course_id)
     submission = get_object_or_404(Submission, pk=submission_id)
     score = 0
     correct_answers = 0
     selected_ids = []
+
+    # Get the total number of correct answers
     for question in course.question_set.all():
         for choice in question.choice_set.all():
             if choice.is_correct:
                 correct_answers += 1
+
+    # Get the score received by the user
     for choice in submission.choices.all():
-        print(choice)
-        print(choice.is_correct)
         selected_ids.append(choice.id)
         if choice.is_correct:
             score += 1
         else:
             score -= 1
+
+    # Calculate the grade by finding the percentage of correct answers selected.
     grade = int((score/correct_answers)*100)
-    #If choice is selected and choice is correct, increase score by 1.
-    #If choice is not selected and choice is correct, don't increase score.
-    #If choice is selected and choice is not correct, don't increase score.
-    #Denominator = total number of correct choices
-            
+
+    # Context to go out to the exam result bootstrap
     context = {}
     context['course'] = course
     context['selected_ids'] = selected_ids
     context['grade'] = grade
+
     return render(request, 'onlinecourse/exam_result_bootstrap.html', context)
+
 
